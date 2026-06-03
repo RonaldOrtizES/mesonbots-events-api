@@ -9,7 +9,6 @@ Servicio independiente para eventos, conversaciones y webhooks de WhatsApp dentr
 - Webhooks entrantes de Meta WhatsApp y Twilio.
 - Apertura, continuidad, escalado, cierre y archivo de conversaciones.
 - Registro de mensajes inbound/outbound.
-- Auto-cierre de conversaciones fuera de la ventana de servicio.
 - Comunicación fire-and-forget con `mesonbots-ai-api`, si esta configurado.
 
 Este servicio comparte la misma base de datos Neon Postgres y el mismo `JWT_SECRET` que `mesonbots-core-api`.
@@ -31,9 +30,7 @@ Este servicio comparte la misma base de datos Neon Postgres y el mismo `JWT_SECR
 ```text
 mesonbots-events-api/
 ├── api/
-│   ├── index.ts
-│   └── cron/
-│       └── cerrar-conversaciones.ts
+│   └── index.ts
 ├── migrations/
 │   └── 003_unique_open_conversation.sql
 ├── src/
@@ -45,7 +42,6 @@ mesonbots-events-api/
 │   │   └── client.ts
 │   ├── middleware/
 │   │   ├── auth.ts
-│   │   ├── cron-auth.ts
 │   │   ├── dual-auth.ts
 │   │   ├── error-handler.ts
 │   │   └── service-auth.ts
@@ -99,7 +95,6 @@ Configurar las variables de `.env.example`:
 - `SERVICE_TOKEN`: token compartido para requests internos entre microservicios. Opcional si no recibes llamadas internas.
 - `CORE_API_URL`: URL publica del core. Opcional.
 - `AI_API_URL`: URL publica de AI. Opcional; si falta, el webhook solo registra y omite IA.
-- `CRON_SECRET`: secreto para cron jobs. Recomendado para proteger el cierre automatico.
 - `CORS_ORIGINS`: origenes permitidos separados por coma.
 - `NODE_ENV` y `PORT`.
 
@@ -124,22 +119,8 @@ vercel env add META_ACCESS_TOKEN
 vercel env add SERVICE_TOKEN
 vercel env add CORE_API_URL
 vercel env add AI_API_URL
-vercel env add CRON_SECRET
 vercel env add CORS_ORIGINS
 vercel deploy --prod
-```
-
-`vercel.json` registra el cron:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/cerrar-conversaciones",
-      "schedule": "0 * * * *"
-    }
-  ]
-}
 ```
 
 ## Conexion con Core API
@@ -222,15 +203,6 @@ curl -X POST http://localhost:3000/api/conversaciones/<conversation-id>/mensajes
   -d '{ "contenido": "Claro, puedo ayudarte con eso.", "generatedByAi": true }'
 ```
 
-### Forzar Cron de Cierre
-
-```bash
-curl -X POST http://localhost:3000/api/cron/cerrar-conversaciones \
-  -H "Authorization: Bearer $CRON_SECRET"
-```
-
-En Vercel el cron se ejecuta en `/api/cron/cerrar-conversaciones`.
-
 ## Endpoints
 
 - `GET /health`
@@ -245,4 +217,3 @@ En Vercel el cron se ejecuta en `/api/cron/cerrar-conversaciones`.
 - `PATCH /api/conversaciones/:id/estado`
 - `POST /api/conversaciones/:id/tomar-control`
 - `POST /api/conversaciones/:id/devolver-al-bot`
-- `GET|POST /api/cron/cerrar-conversaciones`

@@ -3,10 +3,8 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { env } from "./config/env";
-import { requireCronAuth } from "./middleware/cron-auth";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { conversacionesRouter } from "./modules/conversaciones/conversaciones.routes";
-import { cerrarConversacionesInactivas } from "./modules/conversaciones/conversaciones.service";
 import { webhooksRouter } from "./modules/webhooks/webhooks.routes";
 
 export const app = express();
@@ -47,19 +45,6 @@ const apiLimiter = rateLimit({
 
 app.use("/api", apiLimiter);
 app.use("/api/conversaciones", conversacionesRouter);
-app.all("/api/cron/cerrar-conversaciones", requireCronAuth, async (_req, res, next) => {
-  try {
-    const result = await cerrarConversacionesInactivas();
-    console.info("[CRON] Conversaciones cerradas", result);
-    res.status(200).json({
-      ok: true,
-      cerradas: result.cerradas,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 app.use(notFoundHandler);
 app.use(errorHandler);
