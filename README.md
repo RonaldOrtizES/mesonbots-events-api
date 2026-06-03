@@ -110,6 +110,13 @@ El indice `idx_unique_open_conversation` evita conversaciones abiertas duplicada
 
 ## Deploy en Vercel
 
+Variables **obligatorias** en Vercel (Settings → Environment Variables):
+
+- `DATABASE_URL`
+- `JWT_SECRET`
+
+Sin esas dos, la funcion serverless falla al arrancar.
+
 ```bash
 vercel link
 vercel env add DATABASE_URL
@@ -122,6 +129,14 @@ vercel env add AI_API_URL
 vercel env add CORS_ORIGINS
 vercel deploy --prod
 ```
+
+Probar despues del deploy:
+
+```bash
+curl https://tu-proyecto.vercel.app/health
+```
+
+Si ves `503` con mensaje de configuracion, revisa las variables de entorno en Vercel.
 
 ## Conexion con Core API
 

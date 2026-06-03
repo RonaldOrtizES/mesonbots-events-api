@@ -26,8 +26,10 @@ const envSchema = z.object({
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error("[CONFIG] Variables de entorno invalidas", parsedEnv.error.flatten().fieldErrors);
-  throw new Error("Invalid environment variables");
+  const fieldErrors = parsedEnv.error.flatten().fieldErrors;
+  console.error("[CONFIG] Variables de entorno invalidas", fieldErrors);
+  const missing = Object.keys(fieldErrors).join(", ");
+  throw new Error(`Invalid environment variables: ${missing}`);
 }
 
 export const env = {
