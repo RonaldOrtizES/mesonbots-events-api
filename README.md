@@ -172,28 +172,21 @@ curl -X POST http://localhost:3000/webhook/meta \
 curl "http://localhost:3000/webhook/meta?hub.mode=subscribe&hub.verify_token=$META_VERIFY_TOKEN&hub.challenge=abc123"
 ```
 
-### Login
-
-El login vive en `mesonbots-core-api`. Usar el JWT emitido por core:
-
-```bash
-export JWT="<jwt-del-core-api>"
-```
-
 ### Listar Conversaciones
 
 ```bash
-curl "http://localhost:3000/api/conversaciones?estado=open&limit=20&offset=0" \
-  -H "Authorization: Bearer $JWT"
+curl "http://localhost:3000/api/conversaciones?tenantId=<tenant-id>&estado=open&limit=20&offset=0"
 ```
 
 ### Registrar Mensaje Manual
 
 ```bash
 curl -X POST http://localhost:3000/api/conversaciones/<conversation-id>/mensajes \
-  -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
-  -d '{ "contenido": "Hola, soy del equipo de Mesonbots. Te ayudo con gusto." }'
+  -d '{
+    "tenantId": "<tenant-id>",
+    "contenido": "Hola, soy del equipo de Mesonbots. Te ayudo con gusto."
+  }'
 ```
 
 Este endpoint registra el mensaje como `outbound` en la base de datos. No envia nada a Meta.
@@ -202,9 +195,12 @@ Este endpoint registra el mensaje como `outbound` en la base de datos. No envia 
 
 ```bash
 curl -X POST http://localhost:3000/api/conversaciones/<conversation-id>/mensajes \
-  -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
-  -d '{ "contenido": "Claro, puedo ayudarte con eso.", "generatedByAi": true }'
+  -d '{
+    "tenantId": "<tenant-id>",
+    "contenido": "Claro, puedo ayudarte con eso.",
+    "generatedByAi": true
+  }'
 ```
 
 ## Endpoints

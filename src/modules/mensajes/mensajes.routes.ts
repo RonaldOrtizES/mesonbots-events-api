@@ -1,46 +1,50 @@
 import { Router } from "express";
 import { z } from "zod";
-import { requireDualAuth } from "../../middleware/dual-auth";
 import { obtenerMensajes } from "../conversaciones/conversaciones.service";
 import { ok } from "../../utils/responses";
 import { registrarMensajeSaliente } from "./mensajes.service";
 
 const enviarMensajeSchema = z.object({
+  tenantId: z.string().uuid(),
   contenido: z.string().trim().min(1).max(4096),
   generatedByAi: z.boolean().optional()
 });
 
-function getTenantId(reqTenantId: string | undefined): string {
-  if (!reqTenantId) {
-    throw new Error("Tenant id is required");
-  }
-
-  return reqTenantId;
-}
+const mensajesQuerySchema = z.object({
+  tenantId: z.string().uuid()
+});
 
 export const mensajesRouter = Router({ mergeParams: true });
 
-mensajesRouter.get("/", requireDualAuth, async (req, res, next) => {
+function getConversationId(params: Record<string, string | undefined>): string {
+  const conversationId = params.id;
+  if (!conversationId) {
+    throw new Error("Conversation id is required");
+  }
+
+  return conversationId;
+}
+
+mensajesRouter.get("/", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
-    const conversationId = req.params.id;
-    const messages = await obtenerMensajes(conversationId, tenantId);
+    const query = mensajesQuerySchema.parse(req.query);
+    const conversationId = getConversationId(req.params);
+    const messages = await obtenerMensajes(conversationId, query.tenantId);
     ok(res, messages);
   } catch (error) {
     next(error);
   }
 });
 
-mensajesRouter.post("/", requireDualAuth, async (req, res, next) => {
+mensajesRouter.post("/", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
-    const conversationId = req.params.id;
+    const conversationId = getConversationId(req.params);
     const body = enviarMensajeSchema.parse(req.body);
     const result = await registrarMensajeSaliente({
-      tenantId,
+      tenantId: body.tenantId,
       conversacionId: conversationId,
       contenido: body.contenido,
-      generatedByAi: req.auth?.source === "service" ? body.generatedByAi ?? true : false
+      generatedByAi: body.generatedByAi ?? false
     });
 
     ok(res, result, 201);

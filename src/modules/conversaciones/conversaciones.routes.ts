@@ -1,9 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { requireDualAuth } from "../../middleware/dual-auth";
-import { requireAuth } from "../../middleware/auth";
 import { ConversationStatus } from "../../types";
-import { HttpError, ok } from "../../utils/responses";
+import { ok } from "../../utils/responses";
 import { mensajesRouter } from "../mensajes/mensajes.routes";
 import {
   abrirOContinuarConversacion,
@@ -19,6 +17,7 @@ import {
 const estados: [ConversationStatus, ...ConversationStatus[]] = ["open", "closed", "escalated", "archived"];
 
 const listQuerySchema = z.object({
+  tenantId: z.string().uuid(),
   estado: z.enum(estados).optional(),
   busqueda: z.string().trim().min(1).optional(),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -26,6 +25,7 @@ const listQuerySchema = z.object({
 });
 
 const estadoBodySchema = z.object({
+  tenantId: z.string().uuid(),
   estado: z.enum(estados)
 });
 
@@ -44,13 +44,13 @@ const cerrarAutomaticoBodySchema = z.object({
   aiHandledFully: z.boolean().default(true)
 });
 
-function getTenantId(reqTenantId: string | undefined): string {
-  if (!reqTenantId) {
-    throw new HttpError(401, "Tenant id is required", "TENANT_REQUIRED");
-  }
+const tenantQuerySchema = z.object({
+  tenantId: z.string().uuid()
+});
 
-  return reqTenantId;
-}
+const tenantBodySchema = z.object({
+  tenantId: z.string().uuid()
+});
 
 export const conversacionesRouter = Router();
 
@@ -105,12 +105,11 @@ conversacionesRouter.post("/cerrar-automatico", async (req, res, next) => {
   }
 });
 
-conversacionesRouter.get("/", requireDualAuth, async (req, res, next) => {
+conversacionesRouter.get("/", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
     const filters = listQuerySchema.parse(req.query);
     const result = await listarConversaciones({
-      tenantId,
+      tenantId: filters.tenantId,
       estado: filters.estado,
       busqueda: filters.busqueda,
       limit: filters.limit,
@@ -123,10 +122,10 @@ conversacionesRouter.get("/", requireDualAuth, async (req, res, next) => {
   }
 });
 
-conversacionesRouter.get("/:id", requireAuth, async (req, res, next) => {
+conversacionesRouter.get("/:id", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
-    const conversation = await obtenerConversacion(req.params.id, tenantId);
+    const query = tenantQuerySchema.parse(req.query);
+    const conversation = await obtenerConversacion(req.params.id, query.tenantId);
     ok(res, conversation);
   } catch (error) {
     next(error);
@@ -135,31 +134,30 @@ conversacionesRouter.get("/:id", requireAuth, async (req, res, next) => {
 
 conversacionesRouter.use("/:id/mensajes", mensajesRouter);
 
-conversacionesRouter.patch("/:id/estado", requireAuth, async (req, res, next) => {
+conversacionesRouter.patch("/:id/estado", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
     const body = estadoBodySchema.parse(req.body);
-    await cambiarEstadoConversacion(req.params.id, tenantId, body.estado);
+    await cambiarEstadoConversacion(req.params.id, body.tenantId, body.estado);
     ok(res, { id: req.params.id, estado: body.estado });
   } catch (error) {
     next(error);
   }
 });
 
-conversacionesRouter.post("/:id/tomar-control", requireAuth, async (req, res, next) => {
+conversacionesRouter.post("/:id/tomar-control", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
-    await tomarControl(req.params.id, tenantId);
+    const body = tenantBodySchema.parse(req.body);
+    await tomarControl(req.params.id, body.tenantId);
     ok(res, { id: req.params.id, resolvedByHuman: true, aiHandledFully: false });
   } catch (error) {
     next(error);
   }
 });
 
-conversacionesRouter.post("/:id/devolver-al-bot", requireAuth, async (req, res, next) => {
+conversacionesRouter.post("/:id/devolver-al-bot", async (req, res, next) => {
   try {
-    const tenantId = getTenantId(req.auth?.tenantId);
-    await devolverAlBot(req.params.id, tenantId);
+    const body = tenantBodySchema.parse(req.body);
+    await devolverAlBot(req.params.id, body.tenantId);
     ok(res, { id: req.params.id, resolvedByHuman: false, aiHandledFully: true });
   } catch (error) {
     next(error);
