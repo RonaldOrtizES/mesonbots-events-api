@@ -43,8 +43,7 @@ mesonbots-events-api/
 │   ├── middleware/
 │   │   ├── auth.ts
 │   │   ├── dual-auth.ts
-│   │   ├── error-handler.ts
-│   │   └── service-auth.ts
+│   │   └── error-handler.ts
 │   ├── modules/
 │   │   ├── conversaciones/
 │   │   │   ├── conversaciones.routes.ts
@@ -92,7 +91,6 @@ Configurar las variables de `.env.example`:
 - `META_VERIFY_TOKEN`: token para verificacion inicial de webhook. Opcional en local si no verificas Meta.
 - `META_ACCESS_TOKEN`: opcional. El servicio no envia mensajes a Meta en modo de registro pasivo.
 - `TWILIO_ACCOUNT_SID` y `TWILIO_AUTH_TOKEN`: opcionales.
-- `SERVICE_TOKEN`: token compartido para requests internos entre microservicios. Opcional si no recibes llamadas internas.
 - `CORE_API_URL`: URL publica del core. Opcional.
 - `AI_API_URL`: URL publica de AI. Opcional; si falta, el webhook solo registra y omite IA.
 - `CORS_ORIGINS`: origenes permitidos separados por coma.
@@ -123,7 +121,6 @@ vercel env add DATABASE_URL
 vercel env add JWT_SECRET
 vercel env add META_VERIFY_TOKEN
 vercel env add META_ACCESS_TOKEN
-vercel env add SERVICE_TOKEN
 vercel env add CORE_API_URL
 vercel env add AI_API_URL
 vercel env add CORS_ORIGINS
@@ -142,14 +139,7 @@ Si ves `503` con mensaje de configuracion, revisa las variables de entorno en Ve
 
 El dashboard obtiene JWTs desde `mesonbots-core-api`. Este servicio valida esos JWTs localmente con el mismo `JWT_SECRET`, sin llamar al core para autenticar.
 
-Para llamadas internas entre servicios usar:
-
-```http
-Authorization: Service <SERVICE_TOKEN>
-X-Tenant-Id: <tenant-id>
-```
-
-Ejemplo: `mesonbots-ai-api` puede llamar `POST /api/conversaciones/:id/mensajes` para enviar y registrar una respuesta del bot.
+Los endpoints internos temporales para el bot reciben `tenantId` explicitamente en el body.
 
 ## Ejemplos de Curl
 
@@ -208,12 +198,11 @@ curl -X POST http://localhost:3000/api/conversaciones/<conversation-id>/mensajes
 
 Este endpoint registra el mensaje como `outbound` en la base de datos. No envia nada a Meta.
 
-### Enviar Mensaje desde AI API
+### Registrar Mensaje desde AI API
 
 ```bash
 curl -X POST http://localhost:3000/api/conversaciones/<conversation-id>/mensajes \
-  -H "Authorization: Service $SERVICE_TOKEN" \
-  -H "X-Tenant-Id: <tenant-id>" \
+  -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{ "contenido": "Claro, puedo ayudarte con eso.", "generatedByAi": true }'
 ```

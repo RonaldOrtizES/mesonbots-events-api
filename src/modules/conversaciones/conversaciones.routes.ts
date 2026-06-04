@@ -2,7 +2,6 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireDualAuth } from "../../middleware/dual-auth";
 import { requireAuth } from "../../middleware/auth";
-import { requireServiceAuth } from "../../middleware/service-auth";
 import { ConversationStatus } from "../../types";
 import { HttpError, ok } from "../../utils/responses";
 import { mensajesRouter } from "../mensajes/mensajes.routes";
@@ -55,7 +54,7 @@ function getTenantId(reqTenantId: string | undefined): string {
 
 export const conversacionesRouter = Router();
 
-conversacionesRouter.post("/iniciar", requireServiceAuth, async (req, res, next) => {
+conversacionesRouter.post("/iniciar", async (req, res, next) => {
   try {
     const body = iniciarConversacionBodySchema.parse(req.body);
     const conversation = await abrirOContinuarConversacion({
@@ -87,7 +86,7 @@ conversacionesRouter.post("/iniciar", requireServiceAuth, async (req, res, next)
   }
 });
 
-conversacionesRouter.post("/cerrar-automatico", requireServiceAuth, async (req, res, next) => {
+conversacionesRouter.post("/cerrar-automatico", async (req, res, next) => {
   try {
     const body = cerrarAutomaticoBodySchema.parse(req.body);
     const result = await cerrarConversacionPorTelefono(body.tenantId, body.telefonoOrigen, {

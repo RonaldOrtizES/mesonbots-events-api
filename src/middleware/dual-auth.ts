@@ -1,25 +1,8 @@
 import { NextFunction, Request, Response } from "express";
-import { env } from "../config/env";
-import { extractBearerToken, extractServiceToken, verifyJwtToken } from "../utils/jwt";
+import { extractBearerToken, verifyJwtToken } from "../utils/jwt";
 import { fail } from "../utils/responses";
 
 export function requireDualAuth(req: Request, res: Response, next: NextFunction): void {
-  const serviceToken = extractServiceToken(req.header("authorization"));
-
-  if (serviceToken) {
-    if (serviceToken !== env.SERVICE_TOKEN) {
-      fail(res, 401, "Invalid service token", "SERVICE_AUTH_INVALID");
-      return;
-    }
-
-    req.auth = {
-      source: "service",
-      tenantId: req.header("x-tenant-id") ?? undefined
-    };
-    next();
-    return;
-  }
-
   const jwtToken = extractBearerToken(req.header("authorization"));
 
   if (!jwtToken) {

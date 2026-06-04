@@ -1,7 +1,7 @@
 import { env } from "../config/env";
 
 export async function notifyCore(path: string, tenantId: string, body: unknown): Promise<void> {
-  if (!env.CORE_API_URL || !env.SERVICE_TOKEN) {
+  if (!env.CORE_API_URL) {
     console.info("[SERVICE] Core API no configurada; se omite notificacion interna", {
       path,
       tenantId
@@ -16,7 +16,6 @@ export async function notifyCore(path: string, tenantId: string, body: unknown):
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Service ${env.SERVICE_TOKEN}`,
         "x-tenant-id": tenantId
       },
       body: JSON.stringify(body)

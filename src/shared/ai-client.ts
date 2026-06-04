@@ -15,7 +15,6 @@ async function postWithTimeout(url: string, params: SolicitarRespuestaIAParams):
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Service ${env.SERVICE_TOKEN}`,
         "x-tenant-id": params.tenantId
       },
       body: JSON.stringify({
@@ -31,7 +30,7 @@ async function postWithTimeout(url: string, params: SolicitarRespuestaIAParams):
 }
 
 export async function solicitarRespuestaIA(params: SolicitarRespuestaIAParams): Promise<void> {
-  if (!env.AI_API_URL || !env.SERVICE_TOKEN) {
+  if (!env.AI_API_URL) {
     console.info("[SERVICE] AI API no configurada; se omite procesamiento externo", {
       conversacionId: params.conversacionId,
       tenantId: params.tenantId

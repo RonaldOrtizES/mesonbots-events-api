@@ -15,7 +15,6 @@ const envSchema = z.object({
   META_ACCESS_TOKEN: optionalString,
   TWILIO_ACCOUNT_SID: optionalString,
   TWILIO_AUTH_TOKEN: optionalString,
-  SERVICE_TOKEN: optionalString,
   CORE_API_URL: optionalUrl,
   AI_API_URL: optionalUrl,
   CORS_ORIGINS: z.string().default("http://localhost:4200"),
