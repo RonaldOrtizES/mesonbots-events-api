@@ -536,6 +536,55 @@ export async function cerrarConversacion(
   });
 }
 
+export async function cerrarConversacionPorTelefono(
+  tenantId: string,
+  customerPhone: string,
+  opciones: CerrarConversacionOpciones = {}
+): Promise<{ conversacionId: string | null; cerrada: boolean }> {
+  return withTransaction(async (client) => {
+    const result = await client.query<{ id: string }>(
+      `
+        UPDATE conversations
+        SET
+          status = 'closed',
+          closed_at = NOW(),
+          is_in_service_window = false,
+          resolved_by_human = COALESCE($3, resolved_by_human),
+          ai_handled_fully = COALESCE($4, ai_handled_fully)
+        WHERE tenant_id = $1
+          AND customer_phone = $2
+          AND status = 'open'
+        RETURNING id
+      `,
+      [
+        tenantId,
+        customerPhone,
+        opciones.resolvedByHuman ?? null,
+        opciones.aiHandledFully ?? null
+      ]
+    );
+
+    const closedConversation = result.rows[0];
+
+    if (!closedConversation) {
+      return {
+        conversacionId: null,
+        cerrada: false
+      };
+    }
+
+    await incrementDailyMetric(client, tenantId, getToday(), {
+      conversationsClosed: 1,
+      conversationsResolvedByAi: opciones.aiHandledFully ? 1 : 0
+    });
+
+    return {
+      conversacionId: closedConversation.id,
+      cerrada: true
+    };
+  });
+}
+
 export async function escalarConversacion(
   conversacionId: string,
   tenantId: string,
